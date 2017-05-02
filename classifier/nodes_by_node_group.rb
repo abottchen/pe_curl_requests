@@ -7,10 +7,27 @@ def debug(str)
   puts "DEBUG: #{str}" if $options[:debug] 
 end
 
+# curl data from a specified url
+def curl_data(command)
+  debug "Running command '#{command}'"
+  data = `#{command}`
+  retcode = $?.exitstatus
+  if(retcode != 0) then
+    if(retcode == 7) then
+      puts "ERROR: Unable to reach #{command.match(/(https.*)/)}"
+    else
+      puts "ERROR: Failed to curl endpoint, retcode=#{retcode}"
+    end
+    exit retcode
+  end
+  return data
+end
+
 # List out node groups
 def list_groups 
-  ret = {}
+  $groups.sort_by! { |g| g['name'] }
   $groups.each do |g|
+#    puts "#{g['environment_trumps'] ? '(env group) ' : ''}#{g['name']}"
     puts g['name']
   end
   return nil
@@ -30,8 +47,13 @@ def get_rules(arr, group_id,first=true)
   $groups.each do |group|
     if(group['id'] == group_id) then
       if(group['rule'].to_s != '') then
-        debug "Adding rules '#{group['rule'].to_s}' for group '#{group['name']}'"
-        arr << group['rule'].to_s
+        debug "Translating rule '#{group['rule'].to_s}' for group '#{group['name']}'"
+        
+        data = curl_data("curl -s -X POST --cert $(puppet config print hostcert) --key $(puppet config print hostprivkey) --cacert $(puppet config print localcacert) https://#{CONSOLE_NODE_FQDN}:4433/classifier-api/v1/rules/translate -H 'Content-Type: application/json' --data '#{group['rule'].to_s}'")
+        parsed_rules = JSON.parse(data)
+
+        debug "Adding rules translated rules '#{parsed_rules['query'].to_s}'"
+        arr << parsed_rules['query'].to_s
       elsif(first) then
         debug "Initial group has no rules, so nothing matches"
         return nil
@@ -60,9 +82,9 @@ def build_query_string(arr)
   end
   
   # If the query string is empty, then we don't want to match anything.
-  if(query_string.nil?) then
-    query_string = '["=","certname","No Matches"]'
-  end
+#  if(query_string.nil?) then
+#    query_string = '["=","certname","No Matches"]'
+#  end
   
   query_string.gsub! '"name"', '"certname"'
   debug "Final query string = '#{query_string}'"
@@ -74,7 +96,6 @@ CONSOLE_NODE_FQDN = `hostname -f`.chomp
 PUPPETDB_NODE_FQDN = "localhost"
 
 $options = {}
-
 OptionParser.new do |opts|
   opts.banner = "Usage: nodes_by_node_group.rb [flags] <Group Name> or nodes_by_node_group.rb --list"
   opts.on("-d","--debug","Enable debug output") do |d|
@@ -85,18 +106,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-data = `curl -s --cert $(puppet config print hostcert) --key $(puppet config print hostprivkey) --cacert $(puppet config print localcacert) https://#{CONSOLE_NODE_FQDN}:4433/classifier-api/v1/groups`
-retcode = $?.exitstatus
-if(retcode != 0) then
-  if(retcode == 7) then
-    puts "ERROR: Unable to reach #{CONSOLE_NODE_FQDN}:4433"
-    puts "       Is pe-console-services running?"
-  else
-    puts "ERROR: Failed to curl endpoint, retcode=#{retcode}"
-  end
-  exit retcode
-end
-
+data = curl_data("curl -s --cert $(puppet config print hostcert) --key $(puppet config print hostprivkey) --cacert $(puppet config print localcacert) https://#{CONSOLE_NODE_FQDN}:4433/classifier-api/v1/groups")
 $groups = JSON.parse(data)
 
 if($options[:list]) then
@@ -105,7 +115,7 @@ if($options[:list]) then
 end
 
 $group_to_find ||= ARGV.join " "
-$group_to_find.downcase
+$group_to_find = $group_to_find.downcase
 if($group_to_find.nil?) then
   puts "Usage: nodes_by_node_group.rb <Group Name> [flags]"
   exit -1
@@ -115,21 +125,8 @@ id_hash = build_id_to_name
 get_rules(arr = [], id_hash[$group_to_find])
 query_string = build_query_string(arr)
 
-curlcmd = "curl -s -G http://#{PUPPETDB_NODE_FQDN}:8080/pdb/query/v4/nodes --data-urlencode 'query=#{query_string}'"
-debug curlcmd
-data = `#{curlcmd}`
-retcode = $?.exitstatus
-if(retcode != 0) then
-  if(retcode == 7) then
-    puts "ERROR: Unable to reach localhost:8080"
-    puts "       Is pe-puppetdb running on this host?"
-  else
-    puts "ERROR: Failed to curl endpoint, retcode=#{retcode}"
-  end
-  exit retcode
-end
-
-nodes = JSON.parse(`#{curlcmd}`)
+data = curl_data("curl -s -G http://#{PUPPETDB_NODE_FQDN}:8080/pdb/query/v4/nodes --data-urlencode 'query=#{query_string}'")
+nodes = JSON.parse(data)
 
 title = "Nodes for the class '#{$group_to_find}'"
 puts title
