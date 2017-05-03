@@ -14,7 +14,7 @@ def curl_data(command)
   retcode = $?.exitstatus
   if(retcode != 0) then
     if(retcode == 7) then
-      puts "ERROR: Unable to reach #{command.match(/(https.*)/)}"
+      puts "ERROR: Unable to reach #{command.match(/(http.*)/)}"
     else
       puts "ERROR: Failed to curl endpoint, retcode=#{retcode}"
     end
