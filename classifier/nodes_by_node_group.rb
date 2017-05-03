@@ -95,8 +95,8 @@ end
 # main
 
 $options = {}
-$options[:pdb] = "localhost"
 $options[:console] = `hostname -f`.chomp
+$options[:pdb] = $options[:console]
 OptionParser.new do |opts|
   opts.banner = "Usage: nodes_by_node_group.rb [flags] <Group Name> or nodes_by_node_group.rb --list"
   opts.on("-d","--debug","Enable debug output") do |d|
@@ -105,10 +105,10 @@ OptionParser.new do |opts|
   opts.on("-l","--list","List available groups") do |l|
     $options[:list] = l
   end
-  opts.on("-p","--puppetdb <hostname>","Fully qualified hostname of the PuppetDB node") do |p|
+  opts.on("-p","--puppetdb <hostname>","Fully qualified hostname of the PuppetDB node (Required on split installs)") do |p|
     $options[:pdb] = p
   end
-  opts.on("-c","--console <hostname>","Fully qualified hostname of the Console node") do |c|
+  opts.on("-c","--console <hostname>","Fully qualified hostname of the Console node (Required on split installs)") do |c|
     $options[:console] = c
   end
 end.parse!
