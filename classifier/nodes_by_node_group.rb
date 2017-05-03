@@ -105,10 +105,10 @@ OptionParser.new do |opts|
   opts.on("-l","--list","List available groups") do |l|
     $options[:list] = l
   end
-  opts.on("-p","--puppetdb","Fully qualified hostname of the PuppetDB node") do |p|
+  opts.on("-p","--puppetdb <hostname>","Fully qualified hostname of the PuppetDB node") do |p|
     $options[:pdb] = p
   end
-  opts.on("-c","--console","Fully qualified hostname of the Console node") do |c|
+  opts.on("-c","--console <hostname>","Fully qualified hostname of the Console node") do |c|
     $options[:console] = c
   end
 end.parse!
