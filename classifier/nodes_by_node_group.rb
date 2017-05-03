@@ -137,7 +137,7 @@ end
 get_rules(arr = [], id_hash[$group_to_find])
 query_string = build_query_string(arr)
 
-data = curl_data("curl -s -G http://#{$options[:pdb]}:8080/pdb/query/v4/nodes --data-urlencode 'query=#{query_string}'")
+data = curl_data("curl -s --cert $(puppet config print hostcert) --key $(puppet config print hostprivkey) --cacert $(puppet config print localcacert) -G https://#{$options[:pdb]}:8081/pdb/query/v4/nodes --data-urlencode 'query=#{query_string}'")
 nodes = JSON.parse(data)
 
 title = "Nodes for the class '#{$group_to_find}'"
