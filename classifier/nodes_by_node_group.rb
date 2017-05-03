@@ -117,12 +117,17 @@ end
 
 $group_to_find ||= ARGV.join " "
 $group_to_find = $group_to_find.downcase
-if($group_to_find.nil?) then
-  puts "Usage: nodes_by_node_group.rb <Group Name> [flags]"
+if($group_to_find == '') then
+  puts "No group specified!"
   exit -1
 end
 
 id_hash = build_id_to_name
+if !(id_hash.has_key?($group_to_find)) then
+  puts "ERROR: No group named '#{$group_to_find}' present on #{CONSOLE_NODE_FQDN}."
+  exit -1
+end
+
 get_rules(arr = [], id_hash[$group_to_find])
 query_string = build_query_string(arr)
 
