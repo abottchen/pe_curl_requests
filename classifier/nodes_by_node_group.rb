@@ -56,6 +56,7 @@ def get_rules(arr, group_id,first=true)
         arr << parsed_rules['query'].to_s
       elsif(first) then
         debug "Initial group has no rules, so nothing matches"
+        arr << '["=","certname","No Matches"]'
         return nil
       end
       if(group['id'] != group['parent']) then
