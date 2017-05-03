@@ -49,7 +49,7 @@ def get_rules(arr, group_id,first=true)
       if(group['rule'].to_s != '') then
         debug "Translating rule '#{group['rule'].to_s}' for group '#{group['name']}'"
         
-        data = curl_data("curl -s -X POST --cert $(puppet config print hostcert) --key $(puppet config print hostprivkey) --cacert $(puppet config print localcacert) https://#{CONSOLE_NODE_FQDN}:4433/classifier-api/v1/rules/translate -H 'Content-Type: application/json' --data '#{group['rule'].to_s}'")
+        data = curl_data("curl -s -X POST --cert $(puppet config print hostcert) --key $(puppet config print hostprivkey) --cacert $(puppet config print localcacert) https://#{$options[:console]}:4433/classifier-api/v1/rules/translate -H 'Content-Type: application/json' --data '#{group['rule'].to_s}'")
         parsed_rules = JSON.parse(data)
 
         debug "Adding rules translated rules '#{parsed_rules['query'].to_s}'"
@@ -93,10 +93,10 @@ def build_query_string(arr)
 end
 
 # main
-CONSOLE_NODE_FQDN = `hostname -f`.chomp
-PUPPETDB_NODE_FQDN = "localhost"
 
 $options = {}
+$options[:pdb] = "localhost"
+$options[:console] = `hostname -f`.chomp
 OptionParser.new do |opts|
   opts.banner = "Usage: nodes_by_node_group.rb [flags] <Group Name> or nodes_by_node_group.rb --list"
   opts.on("-d","--debug","Enable debug output") do |d|
@@ -105,9 +105,15 @@ OptionParser.new do |opts|
   opts.on("-l","--list","List available groups") do |l|
     $options[:list] = l
   end
+  opts.on("-p","--puppetdb","Fully qualified hostname of the PuppetDB node") do |p|
+    $options[:pdb] = p
+  end
+  opts.on("-c","--console","Fully qualified hostname of the Console node") do |c|
+    $options[:console] = c
+  end
 end.parse!
 
-data = curl_data("curl -s --cert $(puppet config print hostcert) --key $(puppet config print hostprivkey) --cacert $(puppet config print localcacert) https://#{CONSOLE_NODE_FQDN}:4433/classifier-api/v1/groups")
+data = curl_data("curl -s --cert $(puppet config print hostcert) --key $(puppet config print hostprivkey) --cacert $(puppet config print localcacert) https://#{$options[:console]}:4433/classifier-api/v1/groups")
 $groups = JSON.parse(data)
 
 if($options[:list]) then
@@ -124,14 +130,14 @@ end
 
 id_hash = build_id_to_name
 if !(id_hash.has_key?($group_to_find)) then
-  puts "ERROR: No group named '#{$group_to_find}' present on #{CONSOLE_NODE_FQDN}."
+  puts "ERROR: No group named '#{$group_to_find}' present on #{$options[:console]}."
   exit -1
 end
 
 get_rules(arr = [], id_hash[$group_to_find])
 query_string = build_query_string(arr)
 
-data = curl_data("curl -s -G http://#{PUPPETDB_NODE_FQDN}:8080/pdb/query/v4/nodes --data-urlencode 'query=#{query_string}'")
+data = curl_data("curl -s -G http://#{$options[:pdb]}:8080/pdb/query/v4/nodes --data-urlencode 'query=#{query_string}'")
 nodes = JSON.parse(data)
 
 title = "Nodes for the class '#{$group_to_find}'"
