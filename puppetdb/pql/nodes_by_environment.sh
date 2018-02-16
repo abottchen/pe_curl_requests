@@ -1,3 +1,3 @@
 #!/bin/bash
 
-puppet query 'nodes[certname^C{ report_environment = "production" }'
+puppet query 'nodes[certname] { report_environment = "production" }'
