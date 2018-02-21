@@ -1,6 +1,1 @@
-curl -X GET \
-  --tlsv1 \
-  --cert   $(puppet config print hostcert) \
-  --key    $(puppet config print hostprivkey) \
-  --cacert $(puppet config print localcacert) \
-  https://$(puppet config print server):4433/status/v1/services | python -m json.tool
+curl -X GET --tlsv1 --cert $(puppet config print hostcert) --key $(puppet config print hostprivkey) --cacert $(puppet config print localcacert) https://$(puppet config print server):4433/status/v1/services | python -m json.tool
