@@ -1,10 +1,14 @@
+#!/bin/bash
+
 SET_SERVER=$(puppet config print server)
-CONSOLE="${CONSOLE:-$SET_SERVER}"
+PUPPETDB="${PUPPETDB:-$SET_SERVER}"
+NODE='mynode.puppetdebug.vlan'
 
 curl -X GET \
   --tlsv1 \
-  --data-urlencode query='["and", ["=", "name", "osfamily"], ["=", "value", "RedHat"]]' \
   --cert   $(puppet config print hostcert) \
   --key    $(puppet config print hostprivkey) \
   --cacert $(puppet config print localcacert) \
-  https://${CONSOLE}:8081/pdb/query/v4/facts
+  https://${PUPPETDB}:8081/pdb/query/v4/nodes/${NODE}
+  # VERSION 3 QUERY BELOW
+  # https://${PUPPETDB}:8081/v3/nodes/${NODE}
