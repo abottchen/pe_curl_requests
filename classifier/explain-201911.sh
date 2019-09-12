@@ -7,4 +7,4 @@ curl -X POST --cert $(puppet config print hostcert) \
 https://$(hostname -f):4433/classifier-api/v1/classified/nodes/$HOSTNAME/explanation \
 --data "$(puppet query "inventory[certname,facts] { certname='$HOSTNAME' }" |tail -n +2 |head -n -1 |sed -e 's/^  //' |sed -e 's/^  "certname":/ "name":/' |sed -e 's/^  "facts"/ "fact"/')" \
 -H "Content-Type: application/json" > \
-/tmp/classification-exp-test.json
+/tmp/classification-explain-$HOSTNAME.json
